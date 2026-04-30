@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 لیست کارهای من</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5b042, #f27a3e);
+            font-family: 'Vazir', Tahoma, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .todo-container {
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            width: 400px;
+            max-width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #f27a3e;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        #taskInput {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #f5b042;
+            border-radius: 25px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        #addBtn {
+            background: #f27a3e;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: 0.2s;
+        }
+
+        #addBtn:hover {
+            background: #e05a1a;
+            transform: scale(1.02);
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            background: #f0f0f0;
+            border: none;
+            padding: 8px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+
+        .filter-btn.active {
+            background: #f27a3e;
+            color: white;
+        }
+
+        #taskList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            transition: 0.2s;
+        }
+
+        .task-item:hover {
+            background: #f0f0f0;
+        }
+
+        .task-item.completed span {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .task-check {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 16px;
+            word-break: break-word;
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #ee5a5a;
+            transform: scale(1.05);
+        }
+
+        .stats {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="todo-container">
+        <h1>📝 لیست کارهای من</h1>
+        
+        <div class="input-section">
+            <input type="text" id="taskInput" placeholder="مثلاً: تکلیف ریاضی رو انجام بدم...">
+            <button id="addBtn">➕</button>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">همه</button>
+            <button class="filter-btn" data-filter="pending">انجام نشده</button>
+            <button class="filter-btn" data-filter="completed">انجام شده</button>
+        </div>
+
+        <ul id="taskList"></ul>
+
+        <div class="stats">
+            <span id="taskCount">۰ کار</span>
+        </div>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let currentFilter = 'all';
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function renderTasks() {
+            let filteredTasks = tasks;
+            if (currentFilter === 'pending') {
+                filteredTasks = tasks.filter(t => !t.completed);
+            } else if (currentFilter === 'completed') {
+                filteredTasks = tasks.filter(t => t.completed);
+            }
+
+            const taskList = document.getElementById('taskList');
+            if (filteredTasks.length === 0) {
+                taskList.innerHTML = '<p style="text-align:center;color:#999;">✨ کاری نیست! یه کار جدید اضافه کن</p>';
+                document.getElementById('taskCount').innerText = '۰ کار';
+                return;
+            }
+
+            taskList.innerHTML = '';
+            filteredTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = `task-item ${task.completed ? 'completed' : ''}`;
+                li.innerHTML = `
+                    <input type="checkbox" class="task-check" ${task.completed ? 'checked' : ''} data-id="${task.id}">
+                    <span class="task-text">${escapeHtml(task.text)}</span>
+                    <button class="delete-btn" data-id="${task.id}">✖</button>
+                `;
+                taskList.appendChild(li);
+            });
+
+            const pendingCount = tasks.filter(t => !t.completed).length;
+            document.getElementById('taskCount').innerText = `${pendingCount} کار انجام نشده از ${tasks.length}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            if (text === '') {
+                alert('لطفاً یه کار بنویس!');
+                return;
+            }
+            const newTask = {
+                id: Date.now(),
+                text: text,
+                completed: false
+            };
+            tasks.push(newTask);
+            saveTasks();
+            renderTasks();
+            input.value = '';
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveTasks();
+            renderTasks();
+        }
+
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        document.getElementById('addBtn').addEventListener('click', addTask);
+        document.getElementById('taskInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        document.getElementById('taskList').addEventListener('click', (e) => {
+            const id = parseInt(e.target.dataset.id);
+            if (e.target.classList.contains('delete-btn')) {
+                deleteTask(id);
+            } else if (e.target.classList.contains('task-check')) {
+                toggleTask(id);
+            }
+        });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderTasks();
+            });
+        });
+
+        renderTasks();
+    </script>
+</body>
+</html>
